@@ -9,6 +9,7 @@ final class Result {
   int passed = 0;
   int failures = 0;
   final List<String> failureMessages = new ArrayList<>();
+  final List<Long> testDurations = new ArrayList<>();
 
   void recordSuite() {
     suites++;
@@ -20,6 +21,10 @@ final class Result {
 
   void recordPass() {
     passed++;
+  }
+  
+  void recordTestDuration(long durationMs) {
+    testDurations.add(durationMs);
   }
 
   void recordFailure(String suiteName, String testName, Throwable error) {
@@ -36,5 +41,18 @@ final class Result {
   void recordTeardownFailure(String suiteName, Throwable error) {
     String message = String.format("%s teardown(): %s", suiteName, error.toString());
     failureMessages.add(message);
+  }
+  
+  long getMinDuration() {
+    return testDurations.stream().min(Long::compare).orElse(0L);
+  }
+  
+  long getMaxDuration() {
+    return testDurations.stream().max(Long::compare).orElse(0L);
+  }
+  
+  double getAverageDuration() {
+    if (testDurations.isEmpty()) return 0.0;
+    return testDurations.stream().mapToLong(Long::longValue).average().orElse(0.0);
   }
 }

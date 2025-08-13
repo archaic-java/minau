@@ -99,6 +99,7 @@ final class TestExecutor {
     // Process all results after threads complete
     for (TestResult testResult : testResults) {
       result.recordTest();
+      result.recordTestDuration(testResult.durationMs);
       if (testResult.passed) {
         result.recordPass();
       } else {

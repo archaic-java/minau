@@ -9,21 +9,37 @@ final class Reporter {
   private static final Logger logger = LoggerFactory.getLogger(Reporter.class);
 
   static void printSummary(Result result, Duration duration) {
-    StringBuilder summary = new StringBuilder();
-    summary.append("\n");
-    summary.append("--- SUMMARY ").append("-".repeat(50)).append("\n");
-    summary.append(String.format("Suites: %d, Tests: %d, Passed: %d, Failed: %d, Time: %d ms%n",
-        result.suites, result.tests, result.passed, result.failures, duration.toMillis()));
-
+    double passRate = result.tests > 0 ? (result.passed * 100.0 / result.tests) : 0;
+    double avgDuration = result.tests > 0 ? duration.toMillis() / (double) result.tests : 0;
+    long minDuration = result.getMinDuration();
+    long maxDuration = result.getMaxDuration();
+    
+    String summary = """
+        
+        Test Results:
+        ├─ Suites:     %d
+        ├─ Tests:      %d
+        ├─ Passed:     %d (%.0f%%)
+        ├─ Failed:     %d
+        ├─ Duration:   %d ms (avg: %.1f ms/test)
+        └─ Test Times: min: %d ms, max: %d ms""".formatted(
+            result.suites,
+            result.tests,
+            result.passed, passRate,
+            result.failures,
+            duration.toMillis(), avgDuration,
+            minDuration, maxDuration
+        );
+    
     if (!result.failureMessages.isEmpty()) {
-      summary.append("Failures:\n");
+      StringBuilder failureSection = new StringBuilder("\n\nFailures:");
       for (String message : result.failureMessages) {
-        summary.append("  - ").append(message).append("\n");
+        failureSection.append("\n   • ").append(message);
       }
+      summary += failureSection.toString();
     }
-
-    summary.append("-".repeat(62));
-    logger.info(summary.toString());
+    
+    logger.info(summary);
   }
 
   static void printTestResult(
