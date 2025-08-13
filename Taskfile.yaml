@@ -7,6 +7,8 @@ vars:
   TEST_MODULE: work.archaic.minau.test
   LOG_MODULE: work.archaic.jules
   RELEASE_VERSION: 24
+  EXAMPLE_MODULE: com.example.foo
+  EXAMPLE_TEST_MODULE: com.example.foo.test
 
 tasks:
   tags:
@@ -63,7 +65,23 @@ tasks:
           --release {{.RELEASE_VERSION}}
         java -ea --module-path build/src:jar/bin \
           --add-modules {{.LOG_MODULE}},{{.TEST_MODULE}} \
-          -m {{.MINAU_MODULE}}/{{.MINAU_MODULE}}.Main --build/srcput-dir out {{.TEST_MODULE}}
+          -m {{.MAIN_MODULE}}/{{.MAIN_MODULE}}.Main --output-dir out {{.TEST_MODULE}}
+
+  test-example:
+    desc: Build and test the example module using Minau
+    cmds:
+      - |
+        rm -rf build/src
+        javac \
+          --module {{.EXAMPLE_MODULE}},{{.EXAMPLE_TEST_MODULE}},{{.MAIN_MODULE}} \
+          --module-source-path src \
+          --add-modules {{.LOG_MODULE}},work.archaic.service.catalog \
+          --module-path jar/bin \
+          -d build/src \
+          --release {{.RELEASE_VERSION}}
+        java -ea --module-path build/src:jar/bin \
+          --add-modules {{.LOG_MODULE}},{{.EXAMPLE_TEST_MODULE}} \
+          -m {{.MAIN_MODULE}}/{{.MAIN_MODULE}}.Main --output-dir out {{.EXAMPLE_TEST_MODULE}}
 
   format:
     desc: Format all Java source code using Google Java Format
