@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.lang.RuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,10 +78,12 @@ public final class Main {
   }
 
   private static void usageAndExit() {
-    String usage = """
+    String usage =
+        """
         Usage: java -ea -m work.archaic.minau/work.archaic.minau.Main [--output-dir <dir>] <module>[,<module>...]
         Example: java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests
-                 java -ea -m work.archaic.minau/work.archaic.minau.Main --output-dir build/java com.example.tests""";
+                 java -ea -m work.archaic.minau/work.archaic.minau.Main --output-dir build/java com.example.tests\
+        """;
     logger.info(usage);
     System.exit(2);
   }

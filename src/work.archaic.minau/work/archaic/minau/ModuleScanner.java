@@ -9,10 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
-import work.archaic.service.test.v01.Test;
-import work.archaic.service.test.v01.TestSuite;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import work.archaic.service.test.v01.Test;
+import work.archaic.service.test.v01.TestSuite;
 
 final class ModuleScanner {
 

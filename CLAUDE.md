@@ -33,7 +33,6 @@ The project uses Taskfile (task) for build automation. All build commands are de
 
 The project follows Java Platform Module System (JPMS):
 - Module definition: `src/work.archaic.minau/module-info.java`
-- Provides: `work.archaic.service.test` service
 - Requires: `work.archaic.service.catalog`, `work.archaic.jules`
 
 ### Core Components
@@ -63,33 +62,14 @@ The project uses SLF4J for structured logging with specific conventions:
 
 ## Virtual Thread Implementation
 
-### Current Status
-✅ **Completed**: Basic virtual thread parallel execution within test classes
-- Each test method runs in its own virtual thread
-- Tests within a class execute in parallel while maintaining TestSuite lifecycle
-- Thread-safe result collection using `ConcurrentLinkedQueue<TestResult>`
-- Race condition-free aggregation after thread completion
-
 ### Execution Model
 - **Setup Phase**: Sequential per test class (TestSuite.setup())
 - **Test Execution**: Parallel within each test class using virtual threads
+- **Cross-Class Execution**: Parallel between different test classes using virtual threads
 - **Result Collection**: Thread-safe collection during execution, sequential aggregation after completion
-- **Teardown Phase**: Sequential per test class (TestSuite.teardown()) 
-- **Cross-Class Execution**: Currently sequential between different test classes
+- **Teardown Phase**: Sequential per test class (TestSuite.teardown())
 
 ## Development Notes
-
-### Original TODOs (from README)
-1. ✅ ~~Replace System.out/System.err with proper logger usage~~ - **COMPLETED**
-2. ✅ ~~Implement parallel test execution using virtual threads~~ - **COMPLETED**
-
-### Remaining TODOs to Fully Embrace Virtual Threads
-1. **Cross-class parallel execution**: Execute test classes in parallel using virtual threads
-2. **Configurable concurrency**: Add limits for max concurrent threads (per class/globally)
-3. **Performance metrics**: Add timing comparisons and virtual thread utilization stats
-4. **Enhanced virtual thread management**: Better naming, monitoring, and resource management
-5. **Graceful degradation**: Fallback to sequential execution if virtual threads unavailable
-
 ### Testing Approach
 
 Tests are discovered and executed through the Minau runner itself. The test module (`work.archaic.minau.test`) should be used for testing Minau functionality.
@@ -98,6 +78,3 @@ Tests are discovered and executed through the Minau runner itself. The test modu
 
 The project uses Google Java Format (v1.28.0) stored in `tools/`. Always run `task format` before committing code changes.
 
-### Module Compilation
-
-When compiling, note the typo in module-info.java line 3: `work.arachaic.jules` should likely be `work.archaic.jules`. This may need correction for successful compilation.
