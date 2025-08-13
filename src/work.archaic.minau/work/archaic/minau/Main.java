@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.lang.RuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Main {
+
+  private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
   static {
     boolean assertEnabled = false;
@@ -47,20 +51,20 @@ public final class Main {
         if (i + 1 < args.length) {
           outputDir = args[++i];
         } else {
-          System.err.println("Error: --output-dir requires a value");
+          logger.error("Error: --output-dir requires a value");
           usageAndExit();
         }
       } else if (!arg.startsWith("-")) {
         // Assume this is the module list
         targets = parseTargets(arg);
       } else {
-        System.err.println("Error: Unknown option: " + arg);
+        logger.error("Error: Unknown option: {}", arg);
         usageAndExit();
       }
     }
 
     if (targets == null) {
-      System.err.println("Error: No modules specified");
+      logger.error("Error: No modules specified");
       usageAndExit();
     }
 
@@ -75,14 +79,11 @@ public final class Main {
   }
 
   private static void usageAndExit() {
-    System.err.println(
-        "Usage: java -ea -m work.archaic.minau/work.archaic.minau.Main [--output-dir <dir>]"
-            + " <module>[,<module>...]");
-    System.err.println(
-        "Example: java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests");
-    System.err.println(
-        "         java -ea -m work.archaic.minau/work.archaic.minau.Main --output-dir build/java"
-            + " com.example.tests");
+    String usage = """
+        Usage: java -ea -m work.archaic.minau/work.archaic.minau.Main [--output-dir <dir>] <module>[,<module>...]
+        Example: java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests
+                 java -ea -m work.archaic.minau/work.archaic.minau.Main --output-dir build/java com.example.tests""";
+    logger.info(usage);
     System.exit(2);
   }
 

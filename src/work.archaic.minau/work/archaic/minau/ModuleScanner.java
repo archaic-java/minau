@@ -11,9 +11,12 @@ import java.util.*;
 import java.util.stream.Stream;
 import work.archaic.service.test.v01.Test;
 import work.archaic.service.test.v01.TestSuite;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class ModuleScanner {
 
+  private static final Logger logger = LoggerFactory.getLogger(ModuleScanner.class);
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
   /**
@@ -41,7 +44,7 @@ final class ModuleScanner {
     }
 
     if (out.isEmpty()) {
-      System.err.println("Warning: No tests found for modules: " + moduleNames);
+      logger.warn("No tests found for modules: {}", moduleNames);
     }
 
     return out;
@@ -56,7 +59,7 @@ final class ModuleScanner {
     Path modulePath = Paths.get(moduleOutputPath);
 
     if (!Files.exists(modulePath)) {
-      System.err.println("Warning: Module output directory not found: " + moduleOutputPath);
+      logger.warn("Module output directory not found: {}", moduleOutputPath);
       return;
     }
 

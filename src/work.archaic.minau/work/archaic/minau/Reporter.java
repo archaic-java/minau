@@ -1,24 +1,29 @@
 package work.archaic.minau;
 
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class Reporter {
 
+  private static final Logger logger = LoggerFactory.getLogger(Reporter.class);
+
   static void printSummary(Result result, Duration duration) {
-    System.out.println();
-    System.out.println("--- SUMMARY " + "-".repeat(50));
-    System.out.printf(
-        "Suites: %d, Tests: %d, Passed: %d, Failed: %d, Time: %d ms%n",
-        result.suites, result.tests, result.passed, result.failures, duration.toMillis());
+    StringBuilder summary = new StringBuilder();
+    summary.append("\n");
+    summary.append("--- SUMMARY ").append("-".repeat(50)).append("\n");
+    summary.append(String.format("Suites: %d, Tests: %d, Passed: %d, Failed: %d, Time: %d ms%n",
+        result.suites, result.tests, result.passed, result.failures, duration.toMillis()));
 
     if (!result.failureMessages.isEmpty()) {
-      System.out.println("Failures:");
+      summary.append("Failures:\n");
       for (String message : result.failureMessages) {
-        System.out.println("  - " + message);
+        summary.append("  - ").append(message).append("\n");
       }
     }
 
-    System.out.println("-".repeat(62));
+    summary.append("-".repeat(62));
+    logger.info(summary.toString());
   }
 
   static void printTestResult(
@@ -27,9 +32,9 @@ final class Reporter {
     String timing = String.format(" (%d ms)", durationMs);
 
     if (passed) {
-      System.out.println(symbol + " " + suiteName + "#" + testName + timing);
+      logger.info("{} {}#{}{}", symbol, suiteName, testName, timing);
     } else {
-      System.out.println(symbol + " " + suiteName + "#" + testName + " -> " + error.toString());
+      logger.info("{} {}#{} -> {}", symbol, suiteName, testName, error.toString());
     }
   }
 }
