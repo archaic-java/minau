@@ -45,7 +45,7 @@ The project follows Java Platform Module System (JPMS):
 
 2. **ModuleScanner.java**: Discovers tests from specified modules
 
-3. **TestExecutor.java**: Executes discovered tests (planned to use virtual threads)
+3. **TestExecutor.java**: Executes discovered tests using virtual threads for parallel execution within test classes
 
 4. **TestDescriptor.java**: Represents test metadata
 
@@ -61,11 +61,34 @@ The project uses SLF4J for structured logging with specific conventions:
 - **WARNING**: Recoverable error conditions with fallback
 - **ERROR**: Unrecoverable errors
 
+## Virtual Thread Implementation
+
+### Current Status
+✅ **Completed**: Basic virtual thread parallel execution within test classes
+- Each test method runs in its own virtual thread
+- Tests within a class execute in parallel while maintaining TestSuite lifecycle
+- Thread-safe result collection using `ConcurrentLinkedQueue<TestResult>`
+- Race condition-free aggregation after thread completion
+
+### Execution Model
+- **Setup Phase**: Sequential per test class (TestSuite.setup())
+- **Test Execution**: Parallel within each test class using virtual threads
+- **Result Collection**: Thread-safe collection during execution, sequential aggregation after completion
+- **Teardown Phase**: Sequential per test class (TestSuite.teardown()) 
+- **Cross-Class Execution**: Currently sequential between different test classes
+
 ## Development Notes
 
-### Current TODOs (from README)
-1. Replace System.out/System.err with proper logger usage
-2. Implement parallel test execution using virtual threads
+### Original TODOs (from README)
+1. ✅ ~~Replace System.out/System.err with proper logger usage~~ - **COMPLETED**
+2. ✅ ~~Implement parallel test execution using virtual threads~~ - **COMPLETED**
+
+### Remaining TODOs to Fully Embrace Virtual Threads
+1. **Cross-class parallel execution**: Execute test classes in parallel using virtual threads
+2. **Configurable concurrency**: Add limits for max concurrent threads (per class/globally)
+3. **Performance metrics**: Add timing comparisons and virtual thread utilization stats
+4. **Enhanced virtual thread management**: Better naming, monitoring, and resource management
+5. **Graceful degradation**: Fallback to sequential execution if virtual threads unavailable
 
 ### Testing Approach
 

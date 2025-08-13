@@ -28,13 +28,10 @@ final class Reporter {
 
   static void printTestResult(
       String suiteName, String testName, boolean passed, long durationMs, Throwable error) {
-    String symbol = passed ? "✓" : "✗";
-    String timing = String.format(" (%d ms)", durationMs);
-
     if (passed) {
-      logger.info("{} {}#{}{}", symbol, suiteName, testName, timing);
+      logger.debug("Running '{}'-suite, test: '{}'", suiteName, testName);
     } else {
-      logger.info("{} {}#{} -> {}", symbol, suiteName, testName, error.toString());
+      logger.info("✗ {}#{} -> {}", suiteName, testName, error.toString());
     }
   }
 }

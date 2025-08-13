@@ -33,7 +33,3 @@ care of logging the details of running a test.
 Users of Minau for testing just make sure Minau`s main module is on the module
 path. How to write tests et cetera is documented in the service catalog.
 
-## TODO
-1. Replace System.out and System.err statements with proper logger usage
-2. Have tests run in parallel, each on a virtual thread
-

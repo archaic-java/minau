@@ -79,7 +79,8 @@ tasks:
           --module-path jar/bin \
           -d build/src \
           --release {{.RELEASE_VERSION}}
-        java -ea --module-path build/src:jar/bin \
+        java -ea -Djava.util.logging.config.file=logging.properties \
+          --module-path build/src:jar/bin \
           --add-modules {{.LOG_MODULE}},{{.EXAMPLE_TEST_MODULE}} \
           -m {{.MAIN_MODULE}}/{{.MAIN_MODULE}}.Main --output-dir build/src {{.EXAMPLE_TEST_MODULE}}
 
