@@ -22,25 +22,17 @@ final class ModuleScanner {
   /**
    * Scan the given module names, returning all discovered tests. Uses a simplified approach that
    * works without full JPMS reflection API.
-   */
-  static List<TestDescriptor> discoverTests(Collection<String> moduleNames) throws Exception {
-    return discoverTests(moduleNames, "out");
-  }
-
-  /**
-   * Scan the given module names, returning all discovered tests. Uses a simplified approach that
-   * works without full JPMS reflection API.
    *
    * @param moduleNames the modules to scan for tests
    * @param outputDir the directory where compiled classes are located
    */
-  static List<TestDescriptor> discoverTests(Collection<String> moduleNames, String outputDir)
+  static List<TestDescriptor> discoverTests(Collection<String> moduleNames)
       throws Exception {
     List<TestDescriptor> out = new ArrayList<>();
 
     for (String moduleName : moduleNames) {
       // Try to scan classes in the module using available APIs
-      scanModuleForTests(moduleName, outputDir, out);
+      scanModuleForTests(moduleName, "out", out);
     }
 
     if (out.isEmpty()) {
