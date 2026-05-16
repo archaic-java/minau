@@ -31,5 +31,5 @@ care of logging the details of running a test.
 
 ## User Manual
 Users of Minau for testing just make sure Minau`s main module is on the module
-path. How to write tests et cetera is documented in the service catalog.
+path. How to write tests et cetera is documented in the javadoc.
 

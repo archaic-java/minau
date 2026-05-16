@@ -11,10 +11,6 @@ vars:
   EXAMPLE_TEST_MODULE: com.example.foo.test
 
 tasks:
-  tags:
-    desc: Index Java Symbols with universal ctags
-    cmd: ctags -R --language-force=Java --exclude=.git src
-
   compile:
     desc: Compile the project
     cmds:
