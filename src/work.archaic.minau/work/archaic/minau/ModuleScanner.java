@@ -20,26 +20,23 @@ final class ModuleScanner {
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
   /**
-   * Scan the given module names, returning all discovered tests. Uses a simplified approach that
-   * works without full JPMS reflection API.
+   * Scan the given module names, returning all discovered tests.
    *
    * @param moduleNames the modules to scan for tests
-   * @param outputDir the directory where compiled classes are located
    */
-  static List<TestDescriptor> discoverTests(Collection<String> moduleNames)
-      throws Exception {
-    List<TestDescriptor> out = new ArrayList<>();
+  static List<TestDescriptor> discoverTests(Collection<String> moduleNames) throws Exception {
+    var discoveredTests = new ArrayList<TestDescriptor>();
 
     for (String moduleName : moduleNames) {
       // Try to scan classes in the module using available APIs
-      scanModuleForTests(moduleName, "out", out);
+      scanModuleForTests(moduleName, "out", discoveredTests);
     }
 
-    if (out.isEmpty()) {
+    if (discoveredTests.isEmpty()) {
       logger.warn("No tests found for modules: {}", moduleNames);
     }
 
-    return out;
+    return discoveredTests;
   }
 
   private static void scanModuleForTests(
