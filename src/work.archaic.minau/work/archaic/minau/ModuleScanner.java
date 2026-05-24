@@ -39,13 +39,10 @@ final class ModuleScanner {
     return discoveredTests;
   }
 
-  private static void scanModuleForTests(
-      String moduleName, String outputDir, List<TestDescriptor> out) throws Exception {
-    // Get all classes from the module path that belong to this module
-    // This is a simplified approach that scans the compiled output directory
+  private static void scanModuleForTests(String moduleName, String outputDir,
+    List<TestDescriptor> out) throws Exception {
 
-    String moduleOutputPath = outputDir + "/" + moduleName;
-    Path modulePath = Paths.get(moduleOutputPath);
+    var modulePath = Paths.get(outputDir + "/" + moduleName);
 
     if (!Files.exists(modulePath)) {
       logger.warn("Module output directory not found: {}", moduleOutputPath);
