@@ -13,17 +13,14 @@ consistent.
 ### Logs inside Minau
 We have conventions for using the following log levels of SLF4J.
 
-INFO: Generic status information. For example that we started a certain test or
-that it ended successfully. In general things you would otherwise just print to
+INFO: Generic status information. For example: we started a certain test or
+it ended successfully. In general things you would otherwise just print to
 STDOUT.
 
 DEBUG: Information typically not shown until one starts to debug Minau itself.
 
 WARNING: You want to make obvious that Minau used some kind of fallback to
 recover from an error condition while running tests.
-
-ERROR: Details on an error condition Minau, or parts of it could not recover
-from.
 
 ### Logs inside of tests
 Actually, it should not be needed to log something inside a test. Minau takes

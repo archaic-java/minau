@@ -45,7 +45,7 @@ final class ModuleScanner {
     var modulePath = Paths.get(outputDir + "/" + moduleName);
 
     if (!Files.exists(modulePath)) {
-      logger.warn("Module output directory not found: {}", moduleOutputPath);
+      logger.warn("Module output directory not found: {}", modulePath);
       return;
     }
 
