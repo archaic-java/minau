@@ -97,13 +97,6 @@
  *
  * <h2>Output Format</h2>
  *
- * <p>When run with DEBUG logging, Minau shows individual test execution:
- *
- * <pre>
- * 17:45:29 │ 13.08 - DEBUG - work.archaic.minau.Reporter::printTestResult
- *          └ Running 'CalculatorTest'-suite, test: 'testAddition'
- * </pre>
- *
  * <p>The summary report displays comprehensive statistics:
  *
  * <pre>
@@ -125,20 +118,6 @@
  *   <li>Assertions must be enabled ({@code -ea} flag)
  *   <li>Test modules must export packages containing test classes
  * </ul>
- *
- * <h2>Logging Configuration</h2>
- *
- * <p>Minau uses SLF4J for logging. To see detailed test execution, configure DEBUG level:
- *
- * <pre>{@code
- * # logging.properties
- * .level = INFO
- * work.archaic.minau.level = FINE
- *
- * # Run with:
- * java -ea -Djava.util.logging.config.file=logging.properties \
- *      -m work.archaic.minau/work.archaic.minau.Main com.example.tests
- * }</pre>
  *
  * @since 1.0
  */
