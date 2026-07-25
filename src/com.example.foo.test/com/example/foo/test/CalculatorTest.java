@@ -12,7 +12,7 @@ public class CalculatorTest implements TestSuite {
   public void testAddition() {
     assert calculator.add(2, 3) == 5 : "2 + 3 should equal 5";
     assert calculator.add(-1, 1) == 0 : "-1 + 1 should equal 0";
-    assert calculator.add(0, 0) == 0 : "0 + 0 should equal 0";
+    assert calculator.add(0, 1) == 0 : "0 + 0 should equal 0";
     assert calculator.add(Integer.MAX_VALUE, 0) == Integer.MAX_VALUE : "MAX + 0 should equal MAX";
   }
 

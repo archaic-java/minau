@@ -1,12 +1,8 @@
 package work.archaic.minau;
 
 import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 final class Reporter {
-
-  private static final Logger logger = LoggerFactory.getLogger(Reporter.class);
 
   static void printSummary(Result result, Duration duration) {
     double passRate = result.tests > 0 ? (result.passed * 100.0 / result.tests) : 0;
@@ -44,15 +40,15 @@ final class Reporter {
       summary += failureSection.toString();
     }
 
-    logger.info(summary);
+    System.out.println(summary);
   }
 
   static void printTestResult(
       String suiteName, String testName, boolean passed, long durationMs, Throwable error) {
     if (passed) {
-      logger.debug("Running '{}'-suite, test: '{}'", suiteName, testName);
+      System.out.println("Running '" + suiteName + "'-suite, test: '" + testName + "'");
     } else {
-      logger.info("✗ {}#{} -> {}", suiteName, testName, error.toString());
+      System.out.println("✗ " + suiteName + "#" + testName + " -> " + error.toString());
     }
   }
 }

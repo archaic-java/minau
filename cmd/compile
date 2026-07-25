@@ -1,7 +1,6 @@
 # Command-Line Argument File
 --module "work.archaic.minau,\
 		  work.archaic.service.catalog,\
-		  work.archaic.jules,\
 		  com.example.foo,\
 		  com.example.foo.test"
 

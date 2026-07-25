@@ -9,14 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import work.archaic.service.test.v01.Test;
 import work.archaic.service.test.v01.TestSuite;
 
 final class ModuleScanner {
 
-  private static final Logger logger = LoggerFactory.getLogger(ModuleScanner.class);
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
   /**
@@ -33,7 +30,7 @@ final class ModuleScanner {
     }
 
     if (discoveredTests.isEmpty()) {
-      logger.warn("No tests found for modules: {}", moduleNames);
+      System.out.println("No tests found for modules: " + moduleNames);
     }
 
     return discoveredTests;
@@ -45,7 +42,7 @@ final class ModuleScanner {
     var modulePath = Paths.get(outputDir + "/" + moduleName);
 
     if (!Files.exists(modulePath)) {
-      logger.warn("Module output directory not found: {}", modulePath);
+      System.out.println("Module output directory not found: " + modulePath);
       return;
     }
 

@@ -6,12 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class Main {
-
-  private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
   /*
   * We need to make sure that assertions are enabled.
@@ -51,7 +47,7 @@ public final class Main {
         Usage:   java -ea -m work.archaic.minau/work.archaic.minau.Main <module>[,<module>...]
         Example: java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests
         """;
-    logger.info(usage);
+    System.out.println(usage);
     System.exit(2);
   }
 

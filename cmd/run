@@ -1,7 +1,6 @@
 # These args will run the tests defined in the example module
 --module-path out:lib/bin
---add-modules "work.archaic.jules,\
-			   com.example.foo.test"
+--add-modules "com.example.foo.test"
 
 # Better enable assertions
 -ea
