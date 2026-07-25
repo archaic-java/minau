@@ -142,11 +142,6 @@ final class TestExecutor {
             var result = runTest(instance, test, suiteName);
             results.add(result);
             print(result);
-
-            if (!result.passed()) {
-              failures.add(
-                  "%s#%s: %s".formatted(result.suiteName(), result.testName(), result.error()));
-            }
           };
 
       threads.add(
