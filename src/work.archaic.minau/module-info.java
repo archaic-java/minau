@@ -30,8 +30,8 @@
  * # Run tests in a single module
  * java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests
  *
- * # Run tests in multiple modules
- * java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests,com.example.integration
+ * # Run tests in multiple modules with debug information
+ * java -ea -m work.archaic.minau/work.archaic.minau.Main --debug com.example.tests,com.example.integration
  *
  * <h2>Writing Tests</h2>
  *

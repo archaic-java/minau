@@ -44,11 +44,13 @@ final class Reporter {
   }
 
   static void printTestResult(
-      String suiteName, String testName, boolean passed, long durationMs, Throwable error) {
-    if (passed) {
-      System.out.println("Running '" + suiteName + "'-suite, test: '" + testName + "'");
-    } else {
-      System.out.println("✗ " + suiteName + "#" + testName + " -> " + error.toString());
+      String suiteName, String testName, boolean passed, long durationMs, Throwable error, boolean debug) {
+    if (debug) {
+      if (passed) {
+        System.out.println("Running '" + suiteName + "'-suite, test: '" + testName + "'");
+      } else {
+        System.out.println("✗ " + suiteName + "#" + testName + " -> " + error.toString());
+      }
     }
   }
 }

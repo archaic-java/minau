@@ -30,3 +30,8 @@ care of logging the details of running a test.
 Users of Minau for testing just make sure Minau`s main module is on the module
 path. How to write tests et cetera is documented in the javadoc.
 
+### Debug Mode
+Use the `--debug` flag to see the real-time progress of tests. This will print the status of each test as it starts and finishes.
+
+
+

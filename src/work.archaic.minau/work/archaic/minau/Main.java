@@ -23,9 +23,20 @@ public final class Main {
   }
 
   public static void main(String... args) throws Exception {
-    if (args.length != 1) showUsageAndExit();
+    boolean debug = false;
+    String moduleArg = null;
 
-    var modulesToTest = Arrays.stream(args[0].split(","))
+    for (String arg : args) {
+      if ("--debug".equals(arg)) {
+        debug = true;
+      } else if (moduleArg == null) {
+        moduleArg = arg;
+      }
+    }
+
+    if (moduleArg == null) showUsageAndExit();
+
+    var modulesToTest = Arrays.stream(moduleArg.split(","))
         .map(String::trim)
         .filter(s -> !s.isEmpty())
         .collect(Collectors.toSet());
@@ -34,7 +45,7 @@ public final class Main {
     var discoveredTests = ModuleScanner.discoverTests(modulesToTest);
     var testResult = new Result();
     
-    TestExecutor.executeTests(discoveredTests, testResult);
+    TestExecutor.executeTests(discoveredTests, testResult, debug);
     Reporter.printSummary(testResult, Duration.between(startTimestamp, Instant.now()));
     System.exit(testResult.failures == 0 ? 0 : 1);
   }

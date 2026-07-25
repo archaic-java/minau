@@ -40,8 +40,8 @@ final class TestExecutor {
   // Remove this block once all callers use executeTests(List<TestDescriptor>).
   // ---------------------------------------------------------------------------
 
-  static void executeTests(List<TestDescriptor> tests, Result result) {
-    var execution = executeTests(tests);
+  static void executeTests(List<TestDescriptor> tests, Result result, boolean debug) {
+    var execution = executeTests(tests, debug);
 
     for (var ignored : execution.tests().stream().map(TestResult::suiteName).distinct().toList()) {
       result.recordSuite();
@@ -65,7 +65,7 @@ final class TestExecutor {
 
   // ---------------------------------------------------------------------------
 
-  static ExecutionResult executeTests(List<TestDescriptor> tests) {
+  static ExecutionResult executeTests(List<TestDescriptor> tests, boolean debug) {
     var testsByClass = new HashMap<Class<?>, List<TestDescriptor>>();
     for (var test : tests) {
       testsByClass.computeIfAbsent(test.testClass, ignored -> new ArrayList<>()).add(test);
@@ -82,7 +82,7 @@ final class TestExecutor {
       threads.add(
           Thread.ofVirtual()
               .name("suite-" + testClass.getSimpleName())
-              .start(() -> runSuite(testClass, suiteTests, results, failures)));
+              .start(() -> runSuite(testClass, suiteTests, results, failures, debug)));
     }
 
     joinAll(threads, "Suite execution was interrupted");
@@ -93,7 +93,8 @@ final class TestExecutor {
       Class<?> testClass,
       List<TestDescriptor> tests,
       ConcurrentLinkedQueue<TestResult> results,
-      ConcurrentLinkedQueue<String> failures) {
+      ConcurrentLinkedQueue<String> failures,
+      boolean debug) {
     var suiteName = testClass.getSimpleName();
     Object instance;
 
@@ -102,12 +103,12 @@ final class TestExecutor {
       ((TestSuite) instance).setup();
     } catch (Throwable error) {
       failures.add("%s setup(): %s".formatted(suiteName, error));
-      recordSetupFailure(suiteName, tests, error, results);
+      recordSetupFailure(suiteName, tests, error, results, debug);
       return;
     }
 
     tests.sort((left, right) -> left.methodName.compareTo(right.methodName));
-    runTests(instance, tests, suiteName, results, failures);
+    runTests(instance, tests, suiteName, results, failures, debug);
 
     try {
       ((TestSuite) instance).teardown();
@@ -120,11 +121,12 @@ final class TestExecutor {
       String suiteName,
       List<TestDescriptor> tests,
       Throwable error,
-      ConcurrentLinkedQueue<TestResult> results) {
+      ConcurrentLinkedQueue<TestResult> results,
+      boolean debug) {
     for (var test : tests) {
       var result = new TestResult(suiteName, test.methodName, false, 0, error);
       results.add(result);
-      print(result);
+      print(result, debug);
     }
   }
 
@@ -133,7 +135,8 @@ final class TestExecutor {
       List<TestDescriptor> tests,
       String suiteName,
       ConcurrentLinkedQueue<TestResult> results,
-      ConcurrentLinkedQueue<String> failures) {
+      ConcurrentLinkedQueue<String> failures,
+      boolean debug) {
     var threads = new ArrayList<Thread>();
 
     for (var test : tests) {
@@ -141,7 +144,7 @@ final class TestExecutor {
           () -> {
             var result = runTest(instance, test, suiteName);
             results.add(result);
-            print(result);
+            print(result, debug);
           };
 
       threads.add(
@@ -168,9 +171,9 @@ final class TestExecutor {
     return new TestResult(suiteName, test.methodName, error == null, durationMs, error);
   }
 
-  private static void print(TestResult result) {
+  private static void print(TestResult result, boolean debug) {
     Reporter.printTestResult(
-        result.suiteName(), result.testName(), result.passed(), result.durationMs(), result.error());
+        result.suiteName(), result.testName(), result.passed(), result.durationMs(), result.error(), debug);
   }
 
   private static void joinAll(List<Thread> threads, String message) {

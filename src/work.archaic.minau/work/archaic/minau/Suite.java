@@ -75,13 +75,13 @@ final class Suite {
         }
 
         long durationMs = (System.nanoTime() - startTime) / 1_000_000;
-        Reporter.printTestResult(suiteName, testMethod.name, passed, durationMs, error);
+        Reporter.printTestResult(suiteName, testMethod.name, passed, durationMs, error, false);
       }
     } else {
       for (TestMethod testMethod : testMethods) {
         result.recordTest();
         Reporter.printTestResult(
-            suiteName, testMethod.name, false, 0, new RuntimeException("Setup failed"));
+            suiteName, testMethod.name, false, 0, new RuntimeException("Setup failed"), false);
       }
     }
 
