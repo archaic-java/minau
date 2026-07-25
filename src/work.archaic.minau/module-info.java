@@ -24,12 +24,6 @@
  * java -ea -m work.archaic.minau/work.archaic.minau.Main [options] <module>[,<module>...]
  * }</pre>
  *
- * <p><b>Options:</b>
- *
- * <ul>
- *   <li>{@code --output-dir <dir>} - Directory for output files (default: "out")
- * </ul>
- *
  * <p><b>Examples:</b>
  *
  * <pre>{@code
@@ -38,10 +32,6 @@
  *
  * # Run tests in multiple modules
  * java -ea -m work.archaic.minau/work.archaic.minau.Main com.example.tests,com.example.integration
- *
- * # Specify output directory
- * java -ea -m work.archaic.minau/work.archaic.minau.Main --output-dir build/test-results com.example.tests
- * }</pre>
  *
  * <h2>Writing Tests</h2>
  *
