@@ -1,8 +1,29 @@
 package work.archaic.minau;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.Duration;
 
 final class Reporter {
+
+  static String caseFailure(String suite, String name, Throwable error, CaseTrail.Evidence evidence) {
+    var text = new StringBuilder(escape(suite)).append("#").append(escape(name));
+    for (var note : evidence.notes()) {
+      text.append("\n       ").append(escape(note));
+    }
+    if (evidence.omitted() > 0 || evidence.truncated() > 0) {
+      text.append("\n       Trail loss: ").append(evidence.omitted()).append(" omitted, ")
+          .append(evidence.truncated()).append(" truncated");
+    }
+    var stack = new StringWriter();
+    error.printStackTrace(new PrintWriter(stack));
+    text.append("\n       ").append(stack.toString().stripTrailing().replace("\n", "\n       "));
+    return text.toString();
+  }
+
+  private static String escape(String text) {
+    return text.replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n");
+  }
 
   static void printSummary(Result result, Duration duration) {
     double passRate = result.tests > 0 ? (result.passed * 100.0 / result.tests) : 0;
@@ -47,9 +68,9 @@ final class Reporter {
       String suiteName, String testName, boolean passed, long durationMs, Throwable error, boolean debug) {
     if (debug) {
       if (passed) {
-        System.out.println("Running '" + suiteName + "'-suite, test: '" + testName + "'");
+        System.out.println("Passed '" + escape(suiteName) + "'-suite, test: '" + escape(testName) + "'");
       } else {
-        System.out.println("✗ " + suiteName + "#" + testName + " -> " + error.toString());
+        System.out.println("✗ " + escape(suiteName) + "#" + escape(testName) + " -> " + escape(error.toString()));
       }
     }
   }

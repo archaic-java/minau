@@ -45,7 +45,8 @@ public final class Main {
     var discoveredTests = ModuleScanner.discoverTests(modulesToTest);
     var testResult = new Result();
     
-    TestExecutor.executeTests(discoveredTests, testResult, debug);
+    TestExecutor.executeTests(discoveredTests.methods(), testResult, debug);
+    CaseExecutor.execute(discoveredTests.caseSuites(), testResult, debug);
     Reporter.printSummary(testResult, Duration.between(startTimestamp, Instant.now()));
     System.exit(testResult.failures == 0 ? 0 : 1);
   }

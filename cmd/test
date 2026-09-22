@@ -1,0 +1,3 @@
+-ea
+--module-path out
+-m work.archaic.minau.test/work.archaic.minau.test.IntegrationTest
