@@ -2,7 +2,9 @@
 --module "work.archaic.minau,\
 		  work.archaic.service.catalog,\
 		  com.example.foo,\
-		  com.example.foo.test"
+		  com.example.foo.test,\
+          work.archaic.minau.test,\
+          work.archaic.minau.fixture"
 
 # Where to find the modules
 --module-source-path src:lib/src 

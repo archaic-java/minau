@@ -16,28 +16,32 @@ final class ModuleScanner {
 
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
+  record Discovery(List<TestDescriptor> methods, List<Class<?>> caseSuites) {}
+
   /**
    * Scan the given module names, returning all discovered tests.
    *
    * @param moduleNames the modules to scan for tests
    */
-  static List<TestDescriptor> discoverTests(Collection<String> moduleNames) throws Exception {
+  static Discovery discoverTests(Collection<String> moduleNames) throws Exception {
     var discoveredTests = new ArrayList<TestDescriptor>();
+    var caseSuites = new ArrayList<Class<?>>();
 
     for (String moduleName : moduleNames) {
       // Try to scan classes in the module using available APIs
-      scanModuleForTests(moduleName, "out", discoveredTests);
+      scanModuleForTests(moduleName, "out", discoveredTests, caseSuites);
     }
 
-    if (discoveredTests.isEmpty()) {
+    if (discoveredTests.isEmpty() && caseSuites.isEmpty()) {
       System.out.println("No tests found for modules: " + moduleNames);
     }
 
-    return discoveredTests;
+    return new Discovery(List.copyOf(discoveredTests), List.copyOf(caseSuites));
   }
 
-  private static void scanModuleForTests(String moduleName, String outputDir,
-    List<TestDescriptor> out) throws Exception {
+  private static void scanModuleForTests(
+      String moduleName, String outputDir, List<TestDescriptor> out, List<Class<?>> caseSuites)
+      throws Exception {
 
     var modulePath = Paths.get(outputDir + "/" + moduleName);
 
@@ -50,11 +54,13 @@ final class ModuleScanner {
       paths
           .filter(p -> p.toString().endsWith(".class"))
           .filter(p -> !p.getFileName().toString().equals("module-info.class"))
-          .forEach(p -> tryLoadClass(modulePath, p, out));
+          .sorted()
+          .forEach(p -> tryLoadClass(modulePath, p, out, caseSuites));
     }
   }
 
-  private static void tryLoadClass(Path moduleRoot, Path classFile, List<TestDescriptor> out) {
+  private static void tryLoadClass(
+      Path moduleRoot, Path classFile, List<TestDescriptor> out, List<Class<?>> caseSuites) {
     try {
       // Convert file path to class name
       Path relativePath = moduleRoot.relativize(classFile);
@@ -65,15 +71,20 @@ final class ModuleScanner {
               .substring(0, relativePath.toString().length() - 6); // remove .class
 
       Class<?> c = Class.forName(className, false, ClassLoader.getSystemClassLoader());
-      scanClass(c, out);
+      scanClass(c, out, caseSuites);
     } catch (Throwable ignored) {
       // class not loadable / not visible / linkage error → ignore
     }
   }
 
-  private static void scanClass(Class<?> c, List<TestDescriptor> out) {
+  private static void scanClass(Class<?> c, List<TestDescriptor> out, List<Class<?>> caseSuites) {
     // Skip interfaces and abstract classes
     if (c.isInterface() || Modifier.isAbstract(c.getModifiers())) {
+      return;
+    }
+
+    if (work.archaic.service.test.v02.TestSuite.class.isAssignableFrom(c)) {
+      caseSuites.add(c);
       return;
     }
 
