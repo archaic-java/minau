@@ -49,7 +49,46 @@ public final class IntegrationTest {
         "Suites:     4", "Tests:      21", "Passed:     21", "Failed:     1");
     var disabled = run("success", false, "work.archaic.minau.fixture", false);
     assert disabled.exit() != 0 && disabled.output().contains("expects enabled assertions") : disabled;
-    System.out.println("Minau integration checks passed (13 CLI scenarios)");
+
+    String fixture = "work.archaic.minau.fixture.RegisteredCases";
+    var listing = run("success", true, "work.archaic.minau.fixture", false, "--list");
+    expect(listing, 0, fixture + "#[3] Duplicate[]", fixture + "#[4] Duplicate[]",
+        "--suite " + fixture + " --case 3", "--suite " + fixture + " --case 4");
+    assert !listing.output().contains("DUPLICATE_EXECUTED") : listing;
+    assert !listing.output().contains("SUCCESS_EVIDENCE_MUST_DISAPPEAR") : listing;
+    var selected = run("success", true, "work.archaic.minau.fixture", true,
+        "--suite", fixture, "--case", "3");
+    expect(selected, 0, "Suites:     1", "Tests:      1", "[3] Duplicate[]");
+    assert selected.output().split("DUPLICATE_EXECUTED", -1).length == 2 : selected;
+    var secondDuplicate = run("success", true, "work.archaic.minau.fixture", true,
+        "--suite", fixture, "--case", "4");
+    expect(secondDuplicate, 0, "Tests:      1", "[4] Duplicate[]");
+    var chosenList = run("success", true, "work.archaic.minau.fixture", false,
+        "--list", "--suite", fixture, "--case", "4");
+    expect(chosenList, 0, "#[4] Duplicate[]");
+    assert !chosenList.output().contains("#[3] Duplicate[]") : chosenList;
+    var excluded = run("constructor", true, "work.archaic.minau.fixture,com.example.foo.test",
+        false, "--suite", "com.example.foo.test.AdditionCases");
+    expect(excluded, 0, "Suites:     1", "Tests:      7", "Failed:     0");
+    assert !excluded.output().contains("constructor failed") : excluded;
+    var registrationList = run("registration", true, "work.archaic.minau.fixture", false,
+        "--list", "--suite", fixture);
+    expect(registrationList, 1, "#registration", "Failed:     1");
+    assert !registrationList.output().contains("PARTIAL_CASE_RAN") : registrationList;
+    expect(run("success", true, "com.example.foo.test", false,
+        "--suite", "com.example.foo.test.CalculatorTest"), 0, "Failed:     0");
+    for (var flags : new String[][] {
+        {"--case", "1"}, {"--suite", fixture, "--case", "0"},
+        {"--suite", fixture, "--case", "oops"}, {"--suite", fixture, "--case", "99"},
+        {"--suite", "missing.Suite"}, {"--suite"}, {"--case"}, {"--unknown"},
+        {"--suite", "com.example.foo.test.CalculatorTest", "--case", "1"}
+    }) {
+      var module = flags.length > 1 && flags[1].contains("CalculatorTest")
+          ? "com.example.foo.test" : "work.archaic.minau.fixture";
+      var invalid = run("success", true, module, false, flags);
+      expect(invalid, 2, "usage error");
+    }
+    System.out.println("Minau integration checks passed (selection, listing and legacy CLI)");
   }
 
   private static void expect(Run run, int exit, String... fragments) {
@@ -57,7 +96,8 @@ public final class IntegrationTest {
     for (var fragment : fragments) assert run.output().contains(fragment) : fragment + "\n" + run;
   }
 
-  private static Run run(String mode, boolean assertions, String module, boolean debug)
+  private static Run run(String mode, boolean assertions, String module, boolean debug,
+                         String... flags)
       throws Exception {
     var command = new ArrayList<String>();
     command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
@@ -66,6 +106,7 @@ public final class IntegrationTest {
     command.addAll(java.util.List.of("--module-path", "out", "--add-modules", module,
         "-m", "work.archaic.minau/work.archaic.minau.Main", module));
     if (debug) command.add("--debug");
+    command.addAll(java.util.List.of(flags));
     var output = Files.createTempFile("minau-cli-", ".txt");
     try {
       var process = new ProcessBuilder(command).redirectErrorStream(true)

@@ -11,7 +11,8 @@ import work.archaic.service.test.v02.TestSuite;
 
 /** Executes registered objects directly, including package-private record implementations. */
 final class CaseExecutor {
-  static void execute(List<Class<?>> suites, Result result, boolean debug) throws Exception {
+  static void execute(List<Class<?>> suites, Result result, boolean debug,
+      Integer selectedOrdinal, boolean list) throws Exception {
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
       var pending = new ArrayList<Future<Completed>>();
       for (var suiteClass : suites) {
@@ -19,23 +20,28 @@ final class CaseExecutor {
         var suiteName = suiteClass.getName();
         List<NamedCase> registered;
         try {
-          if (!Modifier.isPublic(suiteClass.getModifiers())) {
-            throw new IllegalArgumentException("Test suite must be public: " + suiteName);
-          }
-          var suite = (TestSuite) suiteClass.getConstructor().newInstance();
-          var collection = new ArrayList<TestCase>();
-          suite.cases(collection);
-          var snapshot = List.copyOf(collection);
-          registered = new ArrayList<>();
-          for (int i = 0; i < snapshot.size(); i++) {
-            var test = snapshot.get(i);
-            registered.add(new NamedCase("[" + (i + 1) + "] " + test, test));
-          }
+          registered = register(suiteClass);
         } catch (Throwable error) {
           var cause = error instanceof InvocationTargetException wrapped ? wrapped.getCause() : error;
           result.failures++;
           result.failureMessages.add(Reporter.caseFailure(
               suiteName, "registration", cause, new CaseTrail.Evidence(List.of(), 0, 0)));
+          continue;
+        }
+        if (selectedOrdinal != null && selectedOrdinal > registered.size())
+          throw new IllegalArgumentException("--case " + selectedOrdinal + " out of range for "
+              + suiteName + " (" + registered.size() + " registrations)");
+        if (list) {
+          for (int i = 0; i < registered.size(); i++) {
+            if (selectedOrdinal == null || selectedOrdinal == i + 1)
+              System.out.println(suiteName + "#" + Reporter.escape(registered.get(i).name())
+                  + "  --suite " + suiteName + " --case " + (i + 1));
+          }
+          continue;
+        }
+        if (selectedOrdinal != null) {
+          var test = registered.get(selectedOrdinal - 1);
+          pending.add(executor.submit(() -> run(suiteName, test, debug)));
           continue;
         }
         for (var test : registered) {
@@ -55,6 +61,21 @@ final class CaseExecutor {
         }
       }
     }
+  }
+
+  private static List<NamedCase> register(Class<?> suiteClass) throws Exception {
+    if (!Modifier.isPublic(suiteClass.getModifiers()))
+      throw new IllegalArgumentException("Test suite must be public: " + suiteClass.getName());
+    var suite = (TestSuite) suiteClass.getConstructor().newInstance();
+    var collection = new ArrayList<TestCase>();
+    suite.cases(collection);
+    var snapshot = List.copyOf(collection);
+    var named = new ArrayList<NamedCase>();
+    for (int i = 0; i < snapshot.size(); i++) {
+      var test = snapshot.get(i);
+      named.add(new NamedCase("[" + (i + 1) + "] " + test, test));
+    }
+    return named;
   }
 
   private static Completed run(String suite, NamedCase named, boolean debug) {
