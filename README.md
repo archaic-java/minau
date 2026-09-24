@@ -99,6 +99,23 @@ Pass comma-separated module names to scan multiple modules. Add `--debug` for co
 status. Exit code is 0 on success, 1 on test/suite failure and 2 for missing CLI arguments.
 Assertions are checked at startup; launch without `-ea` fails.
 
+Use `--list` to register and describe cases without running case bodies. The listing includes
+the suite class, one-based registration ordinal and copyable `--suite`/`--case` flags:
+
+```sh
+java -ea --module-path out --add-modules com.example.foo.test \
+    -m work.archaic.minau/work.archaic.minau.Main com.example.foo.test --list
+java -ea --module-path out --add-modules com.example.foo.test \
+    -m work.archaic.minau/work.archaic.minau.Main com.example.foo.test \
+    --suite com.example.foo.test.AdditionCases --case 2
+```
+
+`--suite` selects a fully qualified v01 or v02 suite before excluded suites are constructed.
+`--case` requires a v02 `--suite`; it selects one registered case while validating the entire
+selected registration. v01 methods can be listed or selected as a suite, but have no v02 case
+ordinal. An ordinal is reproducible only while registration order and inputs remain unchanged;
+it is not a permanent test ID. Missing or invalid selection and unknown flags exit with status 2.
+
 ## Build and verify
 
 Check out `archaic-java/service-catalog` as sibling `service-catalog`, with the v02 test

@@ -21,7 +21,7 @@ final class Reporter {
     return text.toString();
   }
 
-  private static String escape(String text) {
+  static String escape(String text) {
     return text.replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n");
   }
 
