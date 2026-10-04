@@ -88,6 +88,7 @@ public final class IntegrationTest {
       var invalid = run("success", true, module, false, flags);
       expect(invalid, 2, "usage error");
     }
+    DiscoveryTest.run();
     System.out.println("Minau integration checks passed (selection, listing and legacy CLI)");
   }
 

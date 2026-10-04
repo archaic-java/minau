@@ -26,10 +26,10 @@ final class Reporter {
   }
 
   static void printSummary(Result result, Duration duration) {
-    double passRate = result.tests > 0 ? (result.passed * 100.0 / result.tests) : 0;
-    double avgDuration = result.tests > 0 ? duration.toMillis() / (double) result.tests : 0;
-    long minDuration = result.getMinDuration();
-    long maxDuration = result.getMaxDuration();
+    double passRate = result.tests() > 0 ? (result.passed * 100.0 / result.tests()) : 0;
+    double avgDuration = result.durations.getAverage();
+    long minDuration = result.minDuration();
+    long maxDuration = result.maxDuration();
 
     String summary =
         """
@@ -44,7 +44,7 @@ final class Reporter {
         """
             .formatted(
                 result.suites,
-                result.tests,
+                result.tests(),
                 result.passed,
                 passRate,
                 result.failures,
@@ -64,14 +64,12 @@ final class Reporter {
     System.out.println(summary);
   }
 
-  static void printTestResult(
-      String suiteName, String testName, boolean passed, long durationMs, Throwable error, boolean debug) {
-    if (debug) {
-      if (passed) {
-        System.out.println("Passed '" + escape(suiteName) + "'-suite, test: '" + escape(testName) + "'");
-      } else {
-        System.out.println("✗ " + escape(suiteName) + "#" + escape(testName) + " -> " + escape(error.toString()));
-      }
-    }
+  static void printTestResult(TestOutcome outcome, boolean debug) {
+    if (!debug) return;
+    if (outcome.passed())
+      System.out.println("Passed '" + escape(outcome.suite()) + "'-suite, test: '" + escape(outcome.name()) + "'");
+    else
+      System.out.println("✗ " + escape(outcome.suite()) + "#" + escape(outcome.name())
+          + " -> " + escape(outcome.error().toString()));
   }
 }

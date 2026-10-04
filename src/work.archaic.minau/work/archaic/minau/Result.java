@@ -2,57 +2,30 @@ package work.archaic.minau;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 
 final class Result {
-  int suites = 0;
-  int tests = 0;
-  int passed = 0;
-  int failures = 0;
+  int suites;
+  int passed;
+  int failures;
   final List<String> failureMessages = new ArrayList<>();
-  final List<Long> testDurations = new ArrayList<>();
+  final LongSummaryStatistics durations = new LongSummaryStatistics();
 
-  void recordSuite() {
-    suites++;
+  void recordSuite() { suites++; }
+
+  void record(TestOutcome outcome) {
+    durations.accept(outcome.durationMs());
+    if (outcome.passed()) passed++;
+    else recordFailure(Reporter.caseFailure(outcome.suite(), outcome.name(),
+        outcome.error(), outcome.evidence()));
   }
 
-  void recordTest() {
-    tests++;
-  }
-
-  void recordPass() {
-    passed++;
-  }
-
-  void recordTestDuration(long durationMs) {
-    testDurations.add(durationMs);
-  }
-
-  void recordFailure(String suiteName, String testName, Throwable error) {
+  void recordFailure(String message) {
     failures++;
-    String message = String.format("%s#%s: %s", suiteName, testName, error.toString());
     failureMessages.add(message);
   }
 
-  void recordSetupFailure(String suiteName, Throwable error) {
-    String message = String.format("%s setup(): %s", suiteName, error.toString());
-    failureMessages.add(message);
-  }
-
-  void recordTeardownFailure(String suiteName, Throwable error) {
-    String message = String.format("%s teardown(): %s", suiteName, error.toString());
-    failureMessages.add(message);
-  }
-
-  long getMinDuration() {
-    return testDurations.stream().min(Long::compare).orElse(0L);
-  }
-
-  long getMaxDuration() {
-    return testDurations.stream().max(Long::compare).orElse(0L);
-  }
-
-  double getAverageDuration() {
-    if (testDurations.isEmpty()) return 0.0;
-    return testDurations.stream().mapToLong(Long::longValue).average().orElse(0.0);
-  }
+  long tests() { return durations.getCount(); }
+  long minDuration() { return tests() == 0 ? 0 : durations.getMin(); }
+  long maxDuration() { return tests() == 0 ? 0 : durations.getMax(); }
 }

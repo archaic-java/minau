@@ -1,7 +1,6 @@
 package work.archaic.minau;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -14,7 +13,7 @@ final class CaseExecutor {
   static void execute(List<Class<?>> suites, Result result, boolean debug,
       Integer selectedOrdinal, boolean list) throws Exception {
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-      var pending = new ArrayList<Future<Completed>>();
+      var pending = new ArrayList<Future<TestOutcome>>();
       for (var suiteClass : suites) {
         result.recordSuite();
         var suiteName = suiteClass.getName();
@@ -23,49 +22,29 @@ final class CaseExecutor {
           registered = register(suiteClass);
         } catch (Throwable error) {
           var cause = error instanceof InvocationTargetException wrapped ? wrapped.getCause() : error;
-          result.failures++;
-          result.failureMessages.add(Reporter.caseFailure(
-              suiteName, "registration", cause, new CaseTrail.Evidence(List.of(), 0, 0)));
+          result.recordFailure(Reporter.caseFailure(
+              suiteName, "registration", cause, CaseTrail.Evidence.EMPTY));
           continue;
         }
         if (selectedOrdinal != null && selectedOrdinal > registered.size())
           throw new IllegalArgumentException("--case " + selectedOrdinal + " out of range for "
               + suiteName + " (" + registered.size() + " registrations)");
-        if (list) {
-          for (int i = 0; i < registered.size(); i++) {
-            if (selectedOrdinal == null || selectedOrdinal == i + 1)
-              System.out.println(suiteName + "#" + Reporter.escape(registered.get(i).name())
-                  + "  --suite " + suiteName + " --case " + (i + 1));
-          }
-          continue;
-        }
-        if (selectedOrdinal != null) {
-          var test = registered.get(selectedOrdinal - 1);
-          pending.add(executor.submit(() -> run(suiteName, test, debug)));
-          continue;
-        }
-        for (var test : registered) {
-          pending.add(executor.submit(() -> run(suiteName, test, debug)));
+        if (list) System.out.println(suiteName + " (v02; " + registered.size() + " cases)");
+        int from = selectedOrdinal == null ? 0 : selectedOrdinal - 1;
+        int to = selectedOrdinal == null ? registered.size() : selectedOrdinal;
+        for (int i = from; i < to; i++) {
+          var test = registered.get(i);
+          if (list)
+            System.out.println(suiteName + "#" + Reporter.escape(test.name())
+                + "  --suite " + suiteName + " --case " + (i + 1));
+          else pending.add(executor.submit(() -> run(suiteName, test, debug)));
         }
       }
-      for (var future : pending) {
-        var completed = future.get();
-        result.recordTest();
-        result.recordTestDuration(completed.durationMs());
-        if (completed.error() == null) {
-          result.recordPass();
-        } else {
-          result.failures++;
-          result.failureMessages.add(Reporter.caseFailure(completed.suite(), completed.name(),
-              completed.error(), completed.evidence()));
-        }
-      }
+      for (var future : pending) result.record(future.get());
     }
   }
 
   private static List<NamedCase> register(Class<?> suiteClass) throws Exception {
-    if (!Modifier.isPublic(suiteClass.getModifiers()))
-      throw new IllegalArgumentException("Test suite must be public: " + suiteClass.getName());
     var suite = (TestSuite) suiteClass.getConstructor().newInstance();
     var collection = new ArrayList<TestCase>();
     suite.cases(collection);
@@ -78,7 +57,7 @@ final class CaseExecutor {
     return named;
   }
 
-  private static Completed run(String suite, NamedCase named, boolean debug) {
+  private static TestOutcome run(String suite, NamedCase named, boolean debug) {
     long start = System.nanoTime();
     var trail = new CaseTrail();
     Throwable failure = null;
@@ -89,13 +68,12 @@ final class CaseExecutor {
     }
     var evidence = trail.finish(failure != null);
     long duration = (System.nanoTime() - start) / 1_000_000;
-    Reporter.printTestResult(suite, named.name(), failure == null, duration, failure, debug);
-    return new Completed(suite, named.name(), duration, failure, evidence);
+    var outcome = new TestOutcome(suite, named.name(), duration, failure, evidence);
+    Reporter.printTestResult(outcome, debug);
+    return outcome;
   }
 
   private record NamedCase(String name, TestCase test) {}
-  private record Completed(String suite, String name, long durationMs, Throwable error,
-      CaseTrail.Evidence evidence) {}
 
   private CaseExecutor() {}
 }
