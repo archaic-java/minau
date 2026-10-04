@@ -32,58 +32,12 @@ record Addition(int left, int right, int expected) implements TestCase {
     public void run(TestTrail trail) {
         int actual = Math.addExact(left, right);
         trail.note("Actual sum: " + actual);
-        assert actual == expected : "Expected sum: " + expected;
+        assert actual == expected : "Sum must equal " + expected + "; got " + actual;
     }
 }
 ```
 
-Each registration is one test. Minau uses the suite's full class name, a registration ordinal
-and the case's `toString()` (the default record representation works well) for reporting.
-Duplicate instances and descriptions remain separate tests. Records are recommended, not required.
-Top-level case record names must be unique within the package.
-
-The suite receives a fresh mutable collection. Register synchronously, then relinquish the
-collection. Minau snapshots and validates it before starting any of that suite's cases.
-Null entries, failed constructors, failed registration and failed description generation are
-reported as suite failures without running a partial suite. Empty suites count as suites with
-zero tests. Suite failures affect the exit code and failure count without inventing case results.
-
-Cases execute concurrently on virtual threads. Keep case data immutable; create fixtures and
-acquire/close resources in `run`. Records do not make referenced objects immutable. v02 has no
-suite-level setup/teardown hooks. Expected exceptions should be caught and checked in the case.
-Normal return passes; any escaping exception or error fails and retains the original stack
-trace, causes and suppressed exceptions.
-
-### Trails
-
-`trail.note(...)` records evidence that appears only if the case fails. Successful evidence is
-discarded. Each execution has its own trail, valid only on the executing thread while `run`
-is active; other-thread or completed-trail calls fail explicitly. Null notes are rejected.
-There is no propagation to child threads. Complete asynchronous work before returning.
-
-Minau keeps the latest 256 notes, each limited to 2048 UTF-16 code units without splitting a
-surrogate pair. Reports state the number of evicted notes and all truncated note submissions
-(including those later evicted). Newlines in notes and case names are escaped. Retention bounds
-cover the stored notes, not input strings or throwable graphs. Capture occurs even on success.
-Failure reports are rendered together in the final summary, in registration order within each
-v02 suite. Both execution models retain full stack traces, causes and suppressed exceptions;
-v01 suite names are fully qualified and its methods are reported in name order. The summary's
-average test duration is the mean of measured case durations, independent of parallel execution;
-the total duration is the wall-clock run time. `--debug` also prints completion status as each
-case finishes.
-
-Test trails are independent of application logging and do not depend on Peep. Application goals
-can execute within a case without colliding with Minau's diagnostic context.
-
-## Modules and discovery
-
-Minau discovers concrete TestSuite implementations in the explicitly selected, resolved JPMS
-modules. Resolve them with `--add-modules`. Discovery uses `ModuleReader`, so both exploded modules
-and modular JARs work, independently of the working directory or output directory name. Only
-requested modules are scanned; their dependencies are not additional test targets. Each suite
-must be public and have an accessible public no-argument constructor. A public zero-component
-record provides one automatically.
-For v02, export the suite package (a qualified export is sufficient):
+Export the suite package to Minau in the test module:
 
 ```java
 module example.test {
@@ -92,53 +46,19 @@ module example.test {
 }
 ```
 
-Package-private case implementations are invoked through TestCase and need no `opens`.
-Existing v01 suites with `@Test`, setup and teardown continue to work alongside v02 suites.
-Keep their qualified `opens ... to work.archaic.minau` for annotated-method discovery.
-Do not implement both TestSuite versions on one class; v02 takes precedence in discovery.
+After compiling your test module and its dependencies, run it with:
 
 ```sh
 java -ea --module-path out --add-modules example.test \
     -m work.archaic.minau/work.archaic.minau.Main example.test
 ```
 
-Discovery validates every requested module before constructing suites or executing tests. Missing
-resolved modules, unreadable resources, class loading or linkage failures, inaccessible suites or
-methods, and invalid annotated method signatures fail discovery with module/class context and
-original causes. A module without concrete suites also fails; an explicitly empty v01 or v02 suite
-remains valid and appears in listings. Invalid `@Test` methods (static, non-void or with parameters)
-are errors rather than silently ignored tests. For v01, keep the suite package open to Minau;
-v02 suite packages need public access as shown above. Loading for discovery does not initialize
-classes, but construction and registration may do so later.
+For registration, resource ownership and existing v01 suites, read
+[writing tests](skills/maintain-minau/references/writing-tests.md).
+For listing or rerunning one case, read the
+[CLI reference](skills/maintain-minau/references/cli.md).
 
-Discovery errors across modules are reported together, and no case bodies run if any module
-fails discovery. This applies to `--list` and precedes `--suite` selection. Runtime constructor
-or registration exceptions remain suite failures; excluded suites are never constructed.
-Discovery checks compiled contents, so use a clean compilation to avoid stale or omitted tests.
-
-Pass comma-separated module names to scan multiple modules. Add `--debug` for completion
-status. Exit code is 0 on success, 1 on discovery/test/suite failure and 2 for invalid CLI arguments
-or selections. Discovery failures include guidance for unresolved `--add-modules` targets.
-Assertions are checked at startup; launch without `-ea` fails.
-
-Use `--list` to register and describe cases without running case bodies. The listing includes
-the suite class, one-based registration ordinal and copyable `--suite`/`--case` flags:
-
-```sh
-java -ea --module-path out --add-modules com.example.foo.test \
-    -m work.archaic.minau/work.archaic.minau.Main com.example.foo.test --list
-java -ea --module-path out --add-modules com.example.foo.test \
-    -m work.archaic.minau/work.archaic.minau.Main com.example.foo.test \
-    --suite com.example.foo.test.AdditionCases --case 2
-```
-
-`--suite` selects a fully qualified v01 or v02 suite before excluded suites are constructed.
-`--case` requires a v02 `--suite`; it selects one registered case while validating the entire
-selected registration. v01 methods can be listed or selected as a suite, but have no v02 case
-ordinal. An ordinal is reproducible only while registration order and inputs remain unchanged;
-it is not a permanent test ID. Missing or invalid selection and unknown flags exit with status 2.
-
-## Build and verify
+## Build and verify this repository
 
 Check out `archaic-java/service-catalog` as sibling `service-catalog`, with the v02 test
 contracts available on its main branch. The checked-in module source link points there.
@@ -150,12 +70,19 @@ java @cmd/test
 java @cmd/run
 ```
 
-`cmd/test` runs isolated CLI checks covering v01/v02 coexistence, exported packages without
-opens, package-private records, duplicate registration, concurrent execution, snapshot
-isolation, failure evidence, trail bounds and thread confinement, registration failures,
-empty suites and assertion enforcement. It also compiles isolated modular fixtures and verifies
-exploded/JAR discovery from another directory, unresolved and empty modules, missing runtime
-dependencies, invalid declarations, JPMS access diagnostics, discovery-before-execution and
-v01 setup/concurrent-method/teardown behavior. The tests require a full JDK (including `javac`
-and `jar`). `cmd/run` runs the examples, including data-driven
-record cases alongside the existing annotated suites.
+Run these commands from the repository root. A full JDK, including `javac` and `jar`,
+is required. The [contributor guide](skills/maintain-minau/references/contributing.md)
+explains the source map, regression fixtures and troubleshooting.
+
+## Understand or change Minau
+
+Start with the [Minau project skill](skills/maintain-minau/SKILL.md). It is a shared
+reading map for human contributors and coding agents: read its short foundation,
+then open only the references relevant to your task. No skill installation is needed
+to follow these Markdown links. Agents whose tool supports local skills can use the
+folder in place; `AGENTS.md` points to it even without automatic skill discovery.
+
+The skill complements Archaic Java conventions with Minau-specific responsibilities
+and verification. Detailed behavior lives in the linked references; service API
+contracts remain in service-catalog Javadoc. Update the owning document with code
+changes rather than copying it into another guide.
