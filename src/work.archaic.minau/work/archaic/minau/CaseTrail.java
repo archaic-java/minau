@@ -41,10 +41,12 @@ final class CaseTrail implements TestTrail {
     active = false;
     var evidence = failed
         ? new Evidence(List.copyOf(notes), omitted, truncated)
-        : new Evidence(List.of(), 0, 0);
+        : Evidence.EMPTY;
     notes.clear();
     return evidence;
   }
 
-  record Evidence(List<String> notes, long omitted, long truncated) {}
+  record Evidence(List<String> notes, long omitted, long truncated) {
+    static final Evidence EMPTY = new Evidence(List.of(), 0, 0);
+  }
 }

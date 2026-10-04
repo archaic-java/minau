@@ -1,117 +1,103 @@
 package work.archaic.minau;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import work.archaic.service.test.v01.Test;
 import work.archaic.service.test.v01.TestSuite;
 
 final class ModuleScanner {
-
   private static final MethodHandles.Lookup LOOKUP = MethodHandles.lookup();
 
-  record Discovery(List<TestDescriptor> methods, List<Class<?>> caseSuites) {}
+  record LegacySuite(Class<?> type, List<TestDescriptor> methods) {}
+  record Discovery(List<LegacySuite> legacySuites, List<Class<?>> caseSuites) {}
 
-  /**
-   * Scan the given module names, returning all discovered tests.
-   *
-   * @param moduleNames the modules to scan for tests
-   */
-  static Discovery discoverTests(Collection<String> moduleNames) throws Exception {
-    var discoveredTests = new ArrayList<TestDescriptor>();
-    var caseSuites = new ArrayList<Class<?>>();
-
-    for (String moduleName : moduleNames) {
-      // Try to scan classes in the module using available APIs
-      scanModuleForTests(moduleName, "out", discoveredTests, caseSuites);
-    }
-
-    if (discoveredTests.isEmpty() && caseSuites.isEmpty()) {
-      System.out.println("No tests found for modules: " + moduleNames);
-    }
-
-    return new Discovery(List.copyOf(discoveredTests), List.copyOf(caseSuites));
-  }
-
-  private static void scanModuleForTests(
-      String moduleName, String outputDir, List<TestDescriptor> out, List<Class<?>> caseSuites)
-      throws Exception {
-
-    var modulePath = Paths.get(outputDir + "/" + moduleName);
-
-    if (!Files.exists(modulePath)) {
-      System.out.println("Module output directory not found: " + modulePath);
-      return;
-    }
-
-    try (Stream<Path> paths = Files.walk(modulePath)) {
-      paths
-          .filter(p -> p.toString().endsWith(".class"))
-          .filter(p -> !p.getFileName().toString().equals("module-info.class"))
-          .sorted()
-          .forEach(p -> tryLoadClass(modulePath, p, out, caseSuites));
-    }
-  }
-
-  private static void tryLoadClass(
-      Path moduleRoot, Path classFile, List<TestDescriptor> out, List<Class<?>> caseSuites) {
-    try {
-      // Convert file path to class name
-      Path relativePath = moduleRoot.relativize(classFile);
-      String className =
-          relativePath
-              .toString()
-              .replace(System.getProperty("file.separator"), ".")
-              .substring(0, relativePath.toString().length() - 6); // remove .class
-
-      Class<?> c = Class.forName(className, false, ClassLoader.getSystemClassLoader());
-      scanClass(c, out, caseSuites);
-    } catch (Throwable ignored) {
-      // class not loadable / not visible / linkage error → ignore
-    }
-  }
-
-  private static void scanClass(Class<?> c, List<TestDescriptor> out, List<Class<?>> caseSuites) {
-    // Skip interfaces and abstract classes
-    if (c.isInterface() || Modifier.isAbstract(c.getModifiers())) {
-      return;
-    }
-
-    if (work.archaic.service.test.v02.TestSuite.class.isAssignableFrom(c)) {
-      caseSuites.add(c);
-      return;
-    }
-
-    // Only scan classes that implement TestSuite
-    if (!TestSuite.class.isAssignableFrom(c)) {
-      return;
-    }
-
-    for (Method m : c.getDeclaredMethods()) {
-      if (isTestMethod(m)) {
-        try {
-          m.setAccessible(true); // requires 'opens' from the test module
-          MethodHandle mh = LOOKUP.unreflect(m);
-          out.add(new TestDescriptor(c, m.getName(), mh));
-        } catch (IllegalAccessException ignored) {
-          // If we can't access the method, skip it
+  static Discovery discoverTests(Collection<String> moduleNames) throws DiscoveryFailure {
+    var legacy = new ArrayList<LegacySuite>();
+    var cases = new ArrayList<Class<?>>();
+    var problems = new ArrayList<Exception>();
+    for (var name : moduleNames) {
+      int before = legacy.size() + cases.size();
+      int failuresBefore = problems.size();
+      try {
+        var module = ModuleLayer.boot().findModule(name).orElseThrow(() ->
+            new IllegalArgumentException("Module is not resolved; add --add-modules " + name));
+        var resolved = module.getLayer().configuration().findModule(name).orElseThrow();
+        try (var reader = resolved.reference().open(); var resources = reader.list()) {
+          var names = resources.filter(resource -> resource.endsWith(".class"))
+              .filter(resource -> !resource.equals("module-info.class"))
+              .sorted().toList();
+          for (var resource : names) {
+            String className = resource.substring(0, resource.length() - 6).replace('/', '.');
+            try {
+              var type = Class.forName(module, className);
+              if (type == null) throw new ClassNotFoundException(className);
+              inspect(type, legacy, cases);
+            } catch (Exception | LinkageError error) {
+              problems.add(new Exception(name + ": cannot inspect " + className, error));
+            }
+          }
         }
+        if (legacy.size() + cases.size() == before && problems.size() == failuresBefore)
+          problems.add(new Exception(name + ": no concrete test suites found"));
+      } catch (Exception | LinkageError error) {
+        problems.add(new Exception(name + ": cannot discover module", error));
       }
     }
+    if (!problems.isEmpty()) throw new DiscoveryFailure(problems);
+    return new Discovery(List.copyOf(legacy), List.copyOf(cases));
   }
 
-  private static boolean isTestMethod(Method m) {
-    // Only check for @Test annotation
-    return m.isAnnotationPresent(Test.class)
-        && m.getParameterCount() == 0
-        && m.getReturnType() == void.class
-        && !Modifier.isStatic(m.getModifiers());
+  private static void inspect(Class<?> type, List<LegacySuite> legacy, List<Class<?>> cases)
+      throws ReflectiveOperationException {
+    if (type.isInterface() || Modifier.isAbstract(type.getModifiers())) return;
+    boolean v02 = work.archaic.service.test.v02.TestSuite.class.isAssignableFrom(type);
+    if (!v02 && !TestSuite.class.isAssignableFrom(type)) return;
+    if (!Modifier.isPublic(type.getModifiers()))
+      throw new IllegalArgumentException("Test suite must be public");
+    Constructor<?> constructor;
+    try {
+      constructor = type.getConstructor();
+    } catch (NoSuchMethodException missing) {
+      throw new IllegalArgumentException("Suite needs a public no-argument constructor: " + type.getName(), missing);
+    }
+    if (!constructor.canAccess(null))
+      throw new IllegalAccessException("Suite needs an accessible public no-argument constructor; "
+          + "export " + type.getPackageName() + " to work.archaic.minau"
+          + (v02 ? "" : " or open the package to work.archaic.minau"));
+    if (v02) {
+      // Resolve method-signature types too, so missing runtime dependencies cannot hide.
+      type.getDeclaredMethods();
+      cases.add(type);
+      return;
+    }
+    var methods = new ArrayList<TestDescriptor>();
+    for (var method : Arrays.stream(type.getDeclaredMethods())
+        .sorted(Comparator.comparing(Method::getName)).toList()) {
+      if (!method.isAnnotationPresent(Test.class)) continue;
+      if (Modifier.isStatic(method.getModifiers()) || method.getParameterCount() != 0
+          || method.getReturnType() != void.class)
+        throw new IllegalArgumentException("@Test method must be non-static, void and parameterless: "
+            + method.getName());
+      if (!method.trySetAccessible())
+        throw new IllegalAccessException("Cannot access @Test method " + method.getName()
+            + "; open " + type.getPackageName() + " to work.archaic.minau");
+      methods.add(new TestDescriptor(method.getName(), LOOKUP.unreflect(method)));
+    }
+    legacy.add(new LegacySuite(type, List.copyOf(methods)));
+  }
+
+  static final class DiscoveryFailure extends Exception {
+    DiscoveryFailure(List<Exception> problems) {
+      super(problems.size() + " discovery error(s)");
+      problems.forEach(this::addSuppressed);
+    }
   }
 
   private ModuleScanner() {}

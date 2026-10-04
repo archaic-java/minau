@@ -66,16 +66,23 @@ surrogate pair. Reports state the number of evicted notes and all truncated note
 (including those later evicted). Newlines in notes and case names are escaped. Retention bounds
 cover the stored notes, not input strings or throwable graphs. Capture occurs even on success.
 Failure reports are rendered together in the final summary, in registration order within each
-v02 suite. `--debug` also prints completion status as each case finishes.
+v02 suite. Both execution models retain full stack traces, causes and suppressed exceptions;
+v01 suite names are fully qualified and its methods are reported in name order. The summary's
+average test duration is the mean of measured case durations, independent of parallel execution;
+the total duration is the wall-clock run time. `--debug` also prints completion status as each
+case finishes.
 
 Test trails are independent of application logging and do not depend on Peep. Application goals
 can execute within a case without colliding with Minau's diagnostic context.
 
 ## Modules and discovery
 
-Minau continues scanning `out/<module-name>` for concrete TestSuite implementations. Run from
-the project root with the selected modules resolved via `--add-modules`. Each suite must have
-a public no-argument constructor. A public zero-component record provides one automatically.
+Minau discovers concrete TestSuite implementations in the explicitly selected, resolved JPMS
+modules. Resolve them with `--add-modules`. Discovery uses `ModuleReader`, so both exploded modules
+and modular JARs work, independently of the working directory or output directory name. Only
+requested modules are scanned; their dependencies are not additional test targets. Each suite
+must be public and have an accessible public no-argument constructor. A public zero-component
+record provides one automatically.
 For v02, export the suite package (a qualified export is sufficient):
 
 ```java
@@ -95,8 +102,23 @@ java -ea --module-path out --add-modules example.test \
     -m work.archaic.minau/work.archaic.minau.Main example.test
 ```
 
+Discovery validates every requested module before constructing suites or executing tests. Missing
+resolved modules, unreadable resources, class loading or linkage failures, inaccessible suites or
+methods, and invalid annotated method signatures fail discovery with module/class context and
+original causes. A module without concrete suites also fails; an explicitly empty v01 or v02 suite
+remains valid and appears in listings. Invalid `@Test` methods (static, non-void or with parameters)
+are errors rather than silently ignored tests. For v01, keep the suite package open to Minau;
+v02 suite packages need public access as shown above. Loading for discovery does not initialize
+classes, but construction and registration may do so later.
+
+Discovery errors across modules are reported together, and no case bodies run if any module
+fails discovery. This applies to `--list` and precedes `--suite` selection. Runtime constructor
+or registration exceptions remain suite failures; excluded suites are never constructed.
+Discovery checks compiled contents, so use a clean compilation to avoid stale or omitted tests.
+
 Pass comma-separated module names to scan multiple modules. Add `--debug` for completion
-status. Exit code is 0 on success, 1 on test/suite failure and 2 for missing CLI arguments.
+status. Exit code is 0 on success, 1 on discovery/test/suite failure and 2 for invalid CLI arguments
+or selections. Discovery failures include guidance for unresolved `--add-modules` targets.
 Assertions are checked at startup; launch without `-ea` fails.
 
 Use `--list` to register and describe cases without running case bodies. The listing includes
@@ -119,7 +141,7 @@ it is not a permanent test ID. Missing or invalid selection and unknown flags ex
 ## Build and verify
 
 Check out `archaic-java/service-catalog` as sibling `service-catalog`, with the v02 test
-contracts (the matching `test-v02-record-cases` branch until merged). The checked-in module source link points there.
+contracts available on its main branch. The checked-in module source link points there.
 No logging provider is required. With JDK 25 on PATH:
 
 ```sh
@@ -131,5 +153,9 @@ java @cmd/run
 `cmd/test` runs isolated CLI checks covering v01/v02 coexistence, exported packages without
 opens, package-private records, duplicate registration, concurrent execution, snapshot
 isolation, failure evidence, trail bounds and thread confinement, registration failures,
-empty suites and assertion enforcement. `cmd/run` runs the examples, including data-driven
+empty suites and assertion enforcement. It also compiles isolated modular fixtures and verifies
+exploded/JAR discovery from another directory, unresolved and empty modules, missing runtime
+dependencies, invalid declarations, JPMS access diagnostics, discovery-before-execution and
+v01 setup/concurrent-method/teardown behavior. The tests require a full JDK (including `javac`
+and `jar`). `cmd/run` runs the examples, including data-driven
 record cases alongside the existing annotated suites.
