@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain Minau"
+  short_description: "Navigate, extend, and verify the Minau test runner"
+  default_prompt: "Use $maintain-minau to plan and verify a change to the Minau test runner."
